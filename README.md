@@ -74,4 +74,6 @@ https://relay-access.practable.io/session/stats
 100    91  100    91    0     0   1716      0 --:--:-- --:--:-- --:--:--  1716
 {"uri":"wss://relay.practable.io/session/stats?code=575bf3fd-de78-4349-a9d6-04788fd19ed7"}
 ```
-## 
+##  Shellrelay
+
+Note that for a limited period, we are running an older version of the relay code for shell, and the latest version for shell2. Therefore with the latest version of relay installed on your admin machine, only shell2 scripts will work. The shell scripts will fail with a message about an audience in the JSON token. 
