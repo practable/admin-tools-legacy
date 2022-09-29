@@ -10,7 +10,10 @@ To test:
     $ pytest generator.py
 """
 
+import jwt
+import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timedelta
 
@@ -112,6 +115,42 @@ def test_start_datetimes():
         datetime.strptime('01-10-22 08:00:00', dateformat)
         ]
 
+def create_token(groups, start, duration_seconds, audience="https://book.practable.io"):
+    
+    return subprocess.run(["./user-token.sh", audience, groups, start, str(duration_seconds)], capture_output=True)
+
+
+def test_create_token() :
+    # test with far future date
+    token = create_token("truss everyone", "2122-10-12T07:20:50Z", 86400)
+
+    secret = ""
+    verify = False
+    try:
+        f = open("%s/secret/book.pat"%(os.path.expanduser('~')), "r")
+        secret = f.read()
+        f.close()
+        verify = True
+    except:
+        print("Warning: not verifying JWT signature")
+
+    #remove newlines from token and secret
+    payload = jwt.decode(token.stdout[:-1], 
+                         secret[:-1], 
+                         audience="https://book.practable.io", 
+                         algorithms=["HS256"], 
+                         options={"verify_signature": verify, 
+                                  "verify_nbf": False}
+                         )
+   
+    assert payload["groups"] == ['truss', 'everyone']
+    assert payload["nbf"] == 4821232850
+    assert payload["exp"] == 4821232850 +  86400
+    if debug:
+        if verify:
+            print("Signature verified")
+        print(payload)
+    
 # Separate date and time to ease parsing arguments from command line
 def token_set(groups, start_date, start_time, every, duration, end_date, end_time):
     
@@ -121,9 +160,10 @@ def token_set(groups, start_date, start_time, every, duration, end_date, end_tim
     duration_seconds = duration_to_seconds(duration)
     
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
-    
-    #for start in starts:
-        
+    tokens = []
+    for start in starts:
+        tokens.append(create_token(groups, start, duration_seconds))
+    return tokens   
    
  
     
@@ -133,6 +173,7 @@ if __name__ == "__main__":
         
         test_duration_to_seconds()
         test_start_datetimes()
+        test_create_token()
         
     else:
         
