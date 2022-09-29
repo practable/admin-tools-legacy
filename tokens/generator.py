@@ -117,9 +117,22 @@ def test_start_datetimes():
 
 def create_token(groups, start, duration_seconds, audience="https://book.practable.io"):
     
-    return subprocess.run(["./user-token.sh", audience, groups, start, str(duration_seconds)], capture_output=True)
+    p = subprocess.run(["./user-token.sh", audience, groups, start, str(duration_seconds)], capture_output=True)
+    return p.stdout[:-1]
 
-
+def get_secret():
+    
+    secret = ""
+    
+    try:
+        f = open("%s/secret/book.pat"%(os.path.expanduser('~')), "r")
+        secret = f.read()
+        f.close()
+    except:
+        raise ValueError('No secret found')
+    
+    return secret.rstrip("\n") 
+    
 def test_create_token() :
     # test with far future date
     token = create_token("truss everyone", "2122-10-12T07:20:50Z", 86400)
@@ -127,16 +140,14 @@ def test_create_token() :
     secret = ""
     verify = False
     try:
-        f = open("%s/secret/book.pat"%(os.path.expanduser('~')), "r")
-        secret = f.read()
-        f.close()
+        secret = get_secret()
         verify = True
-    except:
+    except ValueError:
         print("Warning: not verifying JWT signature")
 
     #remove newlines from token and secret
-    payload = jwt.decode(token.stdout[:-1], 
-                         secret[:-1], 
+    payload = jwt.decode(token, 
+                         secret, 
                          audience="https://book.practable.io", 
                          algorithms=["HS256"], 
                          options={"verify_signature": verify, 
@@ -148,7 +159,7 @@ def test_create_token() :
     assert payload["exp"] == 4821232850 +  86400
     if debug:
         if verify:
-            print("Signature verified")
+            print("Signature verified (%d chars)"%(len(secret)))
         print(payload)
     
 # Separate date and time to ease parsing arguments from command line
@@ -160,12 +171,11 @@ def token_set(groups, start_date, start_time, every, duration, end_date, end_tim
     duration_seconds = duration_to_seconds(duration)
     
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
-    tokens = []
+    tokens = {}
     for start in starts:
         tokens.append(create_token(groups, start, duration_seconds))
     return tokens   
-   
- 
+    
     
 if __name__ == "__main__":
 
