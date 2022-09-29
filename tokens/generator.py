@@ -17,7 +17,9 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 
-dateformat = "%d-%m-%y %H:%M:%S"
+#dateformat = "%d-%m-%y %H:%M:%S"
+dateformat = "%Y-%m-%dT%H:%M:%SZ"
+
 debug = True
 test = True #set true if testing in spyder, so that tests run
 
@@ -77,42 +79,45 @@ def start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetim
 
 def test_start_datetimes():
     
-    start_datetime = datetime.strptime('01-10-22  7:00:00', dateformat)
-    end_datetime = datetime.strptime('10-10-22  19:00:00', dateformat)
+    start_datetime = datetime.strptime('2022-10-01T07:00:00Z', dateformat)
+    end_datetime = datetime.strptime('2022-10-10T19:00:00Z', dateformat)
     every_seconds = 24 * 3600
     duration_seconds = 3 * 24 * 3600
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)    
+    
     assert starts == [
-        datetime.strptime('01-10-22 07:00:00', dateformat),
-        datetime.strptime('02-10-22 07:00:00', dateformat),
-        datetime.strptime('03-10-22 07:00:00', dateformat),
-        datetime.strptime('04-10-22 07:00:00', dateformat),       
-        datetime.strptime('05-10-22 07:00:00', dateformat),
-        datetime.strptime('06-10-22 07:00:00', dateformat),          
-        datetime.strptime('07-10-22 07:00:00', dateformat),  
+        datetime.strptime('2022-10-01T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-02T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-03T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-04T07:00:00Z', dateformat),       
+        datetime.strptime('2022-10-05T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-06T07:00:00Z', dateformat),          
+        datetime.strptime('2022-10-07T07:00:00Z', dateformat),  
         ]
+    
     duration_seconds = 1 * 24 * 3600
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
     assert starts == [
-        datetime.strptime('01-10-22 07:00:00', dateformat),
-        datetime.strptime('02-10-22 07:00:00', dateformat),
-        datetime.strptime('03-10-22 07:00:00', dateformat),
-        datetime.strptime('04-10-22 07:00:00', dateformat),       
-        datetime.strptime('05-10-22 07:00:00', dateformat),
-        datetime.strptime('06-10-22 07:00:00', dateformat),          
-        datetime.strptime('07-10-22 07:00:00', dateformat),  
-        datetime.strptime('08-10-22 07:00:00', dateformat),          
-        datetime.strptime('09-10-22 07:00:00', dateformat),     
+        datetime.strptime('2022-10-01T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-02T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-03T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-04T07:00:00Z', dateformat),       
+        datetime.strptime('2022-10-05T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-06T07:00:00Z', dateformat),          
+        datetime.strptime('2022-10-07T07:00:00Z', dateformat),  
+        datetime.strptime('2022-10-08T07:00:00Z', dateformat),          
+        datetime.strptime('2022-10-09T07:00:00Z', dateformat),      
         ]   
     
-    start_datetime = datetime.strptime('01-10-22  07:00:00', dateformat)
-    end_datetime = datetime.strptime('01-10-22  09:00:00', dateformat)
+    start_datetime = datetime.strptime('2022-10-01T07:00:00Z', dateformat)
+    end_datetime = datetime.strptime('2022-10-01T09:00:00Z', dateformat)
+    
     every_seconds = 3600
     duration_seconds = 3600
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
     assert starts == [
-        datetime.strptime('01-10-22 07:00:00', dateformat),
-        datetime.strptime('01-10-22 08:00:00', dateformat)
+        datetime.strptime('2022-10-01T07:00:00Z', dateformat),
+        datetime.strptime('2022-10-01T08:00:00Z', dateformat)
         ]
 
 def create_token(groups, start, duration_seconds, audience="https://book.practable.io"):
@@ -163,7 +168,7 @@ def test_create_token() :
         print(payload)
     
 # Separate date and time to ease parsing arguments from command line
-def token_set(groups, start_date, start_time, every, duration, end_date, end_time):
+def create_token_set(groups, start_date, start_time, every, duration, end_date, end_time):
     
     start_datetime = datetime.strptime(" ".join(start_date, start_time), dateformat)    
     end_datetime = datetime.strptime(" ".join(end_date, end_time), dateformat) 
@@ -175,7 +180,91 @@ def token_set(groups, start_date, start_time, every, duration, end_date, end_tim
     for start in starts:
         tokens.append(create_token(groups, start, duration_seconds))
     return tokens   
+
+def time_code(start, day, hour, minute):
+    code = ""
+    if day:
+        code += "-".join([start.strftime('%a'),str(start.day), start.strftime('%b')])
+    if hour:
+        hr = str(start.hour) + "h"
+        if code != "":
+            code = "-".join([code, hr])
+        else:
+            code = hr
+    if minute:
+        mn = str(start.minute) + "m"
+        code +=  mn
+            
+    return code
+
+def test_time_code():
+    start = datetime.strptime('2022-10-01T07:00:00Z', dateformat)
+    day = True
+    hour = False
+    minute = False
     
+    if debug:
+        print(time_code(start, day, hour, minute))
+        
+    assert time_code(start, day, hour, minute) == "Sat-1-Oct"        
+    
+    day = False
+    hour = True
+    minute = False
+
+    if debug:
+        print(time_code(start, day, hour, minute))
+    
+    assert time_code(start, day, hour, minute) == "7h"  
+    
+    day = False
+    hour = True
+    minute = True
+
+    if debug:
+        print(time_code(start, day, hour, minute))
+    
+    assert time_code(start, day, hour, minute) == "7h0m"   
+    
+    day = True
+    hour = True
+    minute = True
+
+    if debug:
+        print(time_code(start, day, hour, minute))
+   
+    assert time_code(start, day, hour, minute) == "Sat-1-Oct-7h0m"      
+
+def time_codes(code, starts, every_seconds, duration_seconds):
+  
+    codes = []
+    day = False
+    hour = False
+    minute = False
+    
+    if every_seconds >= 24 * 3600:
+        day = True
+    elif every_seconds >= 3600:
+        hour = True
+    else:
+        hour = True
+        minute = True
+        
+    for start in starts:
+        codes.append("-".join(code, time_code(start, day, hour, minute)))
+
+    return time_codes   
+
+
+def test_time_codes():
+    
+    starts = [ datetime.strptime('2022-10-01T07:00:00Z', dateformat),
+              datetime.strptime('2022-10-02T07:00:00Z', dateformat)
+             ]
+              
+    codes = time_codes("test", starts, True, False, False)
+
+    assert codes == [ "test-Sat-1-Oct", "test-Sun-2-Oct"]    
     
 if __name__ == "__main__":
 
@@ -184,6 +273,7 @@ if __name__ == "__main__":
         test_duration_to_seconds()
         test_start_datetimes()
         test_create_token()
+        test_time_code()
         
     else:
         
