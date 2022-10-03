@@ -21,15 +21,18 @@ import csv
 import jwt
 import os
 import pytz
+import random
 import re
+import string
 import subprocess
 import sys
 from datetime import datetime, timedelta
 
+
 #dateformat = "%d-%m-%y %H:%M:%S"
 dateformat = "%Y-%m-%dT%H:%M:%SZ"
 
-debug = False
+debug = True
 
 def multiplier(x):
     return {
@@ -129,8 +132,9 @@ def test_start_datetimes():
         ]
 
 def create_token(groups, start, duration_seconds, audience="https://book.practable.io"):
-    
-    p = subprocess.run(["./user-token.sh", audience, groups, start, str(duration_seconds)], capture_output=True)
+    if debug:
+        print("./user-token.sh %s %s %s %s\n"%(audience, groups, start_at, str(duration_seconds)))
+    p = subprocess.run(["./user-token.sh", audience, groups, start_at, str(duration_seconds)], capture_output=True)
     return p.stdout[:-1]
 
 def get_secret():
@@ -188,7 +192,7 @@ def create_token_set(groups, start_at, every, duration, end_by):
     for start in starts:
         # TODO strftime is not timezone aware so we convert to UTC and manually add a Z
         # https://stackoverflow.com/questions/48724902/python-datetime-use-strftime-with-a-timezone-aware-date
-        tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%d-%mT%H:%M:%SZ'), duration_seconds))
+        tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), duration_seconds))
     return starts, tokens   
 
 def time_code(start, day, hour, minute):
@@ -278,6 +282,22 @@ def test_create_time_codes():
     if debug:
         print(codes)
     assert codes == [ "test-Sat-1-Oct-3d", "test-Sun-2-Oct-3d"]    
+
+
+#https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+def create_id_codes(code, starts, every, duration):
+    
+    time_codes = create_time_codes(code, starts, every, duration)
+    
+    codes = []
+    
+    for tc  in time_codes:
+        codes.append("-".join([tc, id_generator()]))
+    
+    return codes
     
 if __name__ == "__main__":
     
@@ -295,7 +315,7 @@ if __name__ == "__main__":
 
 
     starts, tokens = create_token_set(groups, start_at, every, duration, end_by)
-    codes =  create_time_codes(code, starts, every, duration)
+    codes =  create_id_codes(code, starts, every, duration)
     
     header = ['start','link','duration','groups']
     now = datetime.now().strftime('%y-%d-%m-%H-%M-%S')
@@ -322,8 +342,8 @@ if __name__ == "__main__":
             writer.writerow(row)
             
             #write token file
-            with open('./output/%s/%s'%(now,code), 'w') as cf:
-                cf.write(str(token))
+            with open('./output/%s/%s'%(now,code), 'wb') as cf:
+                cf.write(token)
     
            
         
