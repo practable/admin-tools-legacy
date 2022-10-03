@@ -15,9 +15,14 @@ Example usage:
 To test:
     $ ./test
     
+Prerequisites:
+  conda install humanize    
+    
    
 """
 import csv
+import glob
+import humanize
 import jwt
 import os
 import pytz
@@ -131,7 +136,7 @@ def test_start_datetimes():
         datetime.strptime('2022-10-01T08:00:00Z', dateformat)
         ]
 
-def create_token(groups, start, duration_seconds, audience="https://book.practable.io"):
+def create_token(groups, start_at, duration_seconds, audience="https://book.practable.io"):
     if debug:
         print("./user-token.sh %s %s %s %s\n"%(audience, groups, start_at, str(duration_seconds)))
     p = subprocess.run(["./user-token.sh", audience, groups, start_at, str(duration_seconds)], capture_output=True)
@@ -190,6 +195,9 @@ def create_token_set(groups, start_at, every, duration, end_by):
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
     tokens = []
     for start in starts:
+        if debug:
+            print(start)
+            print(start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))
         # TODO strftime is not timezone aware so we convert to UTC and manually add a Z
         # https://stackoverflow.com/questions/48724902/python-datetime-use-strftime-with-a-timezone-aware-date
         tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), duration_seconds))
@@ -210,6 +218,49 @@ def time_code(start, day, hour, minute):
         code +=  mn
             
     return code
+
+def validate_token(token):
+  # return a row of data for the validated-tokens output  
+  secret = ""
+  verify = False
+  row = [ 0, "-", "-", verify, "-", "-"]
+  try:
+      secret = get_secret()
+      verify = True
+  except ValueError:
+      print("Warning: not verifying JWT signature")
+
+  try: 
+      payload = jwt.decode(tb, 
+                           secret, 
+                           audience="https://book.practable.io", #to do: allow other audiences
+                           algorithms=["HS256"], 
+                           options={"verify_signature": verify, 
+                                    "verify_nbf": False}  #this fails for future tokens, so ignore
+                           )
+      
+      nbf_ts = int(payload["nbf"]) 
+      exp_ts = int(payload["exp"])
+      
+      nbf = datetime.utcfromtimestamp(nbf_ts).strftime('%Y-%m-%d %H:%M:%S')
+      exp = datetime.utcfromtimestamp(exp_ts).strftime('%Y-%m-%d %H:%M:%S')
+      
+      delta = humanize.precisedelta(exp_ts - nbf_ts)
+      #['nbf_ts', 'nbf','exp','signature','duration','groups']
+      row = [ nbf_ts, #for sorting
+              nbf,
+              exp,
+              verify,
+              delta,
+              payload["groups"]
+             ]  
+      
+  except:
+      verify = False
+      
+  row[3] = verify #update verify status
+  
+  return row
 
 def test_time_code():
     start = datetime.strptime('2022-10-01T07:00:00Z', dateformat)
@@ -335,16 +386,64 @@ if __name__ == "__main__":
         writer = csv.writer(tf)
         writer.writerow(header)            
 
-        for start, token, code in zip (starts, tokens, codes):
+        # don't use 'code' here because that is the stub all codes use
+        # and we need it later for validation
+        for start, token, c in zip (starts, tokens, codes):
             
             # write csv
-            row = [start, link_stub + code, duration, groups]
+            row = [start, link_stub + c, duration, groups]
             writer.writerow(row)
             
             #write token file
-            with open('./output/%s/%s'%(now,code), 'wb') as cf:
+            with open('./output/%s/%s'%(now,c), 'wb') as cf:
                 cf.write(token)
     
            
+    header = ['link', 'nbf_ts', 'nbf','exp','signature','duration','groups']
+    
+    path = os.getcwd() + "/output/%s/*"%(now)
         
+    token_list = glob.glob(path)
+    
+    if debug:
+        print(path)
+        print(token_list)
+    rows = []
+    
+    for t in token_list:
+        
+        tc = t.split("/")[-1] #get the code
+            
+        if tc == 'tokens.csv':
+            continue #skip
+        
+        if debug:
+            print(t)
+            
+            
+        with open(t, 'rb') as tf:
+            tb = tf.read() 
+        
+            if debug:
+                print(tb)
+            
+
+            vt = validate_token(tb)
+            row = [link_stub + tc] + vt
+            rows.append(row)
+            
+                
+    sorted_rows = sorted(rows, key=lambda x: x[1])
+    
+    
+    
+    
+    
+    
+    with open('./output/%s/validated-tokens.csv'%(now), 'w') as vf:   
+        writer = csv.writer(vf)
+        writer.writerow(header) 
+        for row in sorted_rows:        
+            writer.writerow(row)
+
         
