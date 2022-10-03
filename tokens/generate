@@ -13,12 +13,9 @@ Example usage:
             generate "truss everyone"  2022-10-03T07:00:00Z 1d 3d  2022-12-21T07:00:00Z truss22 "https://book.practable.io/?c="
    
 To test:
-    $ pip install pytest
-    $ pytest generator.py
+    $ ./test
     
-    or set test = True and invoke in spyder or terminal
-    
-    
+   
 """
 import csv
 import jwt
@@ -31,8 +28,7 @@ from datetime import datetime, timedelta
 #dateformat = "%d-%m-%y %H:%M:%S"
 dateformat = "%Y-%m-%dT%H:%M:%SZ"
 
-debug = True
-test = True #set true if testing in spyder, so that tests run
+debug = False
 
 def multiplier(x):
     return {
@@ -282,49 +278,41 @@ def test_create_time_codes():
     
 if __name__ == "__main__":
 
-    if test:
-        
-        test_duration_to_seconds()
-        test_start_datetimes()
-        test_create_token()
-        test_time_code()
-        test_create_time_codes()
-        
-    else:
-        
-        try:
-            groups = sys.argv[1]
-            start_at = sys.argv[2]
-            every = sys.argv[3]
-            duration = sys.argv[4]
-            end_by = sys.argv[5]
-            code = sys.argv[6]
-            link_stub = sys.argv[7]
+
     
-        except IndexError:
-            raise SystemExit(f"Usage: {sys.argv[0]} <groups> <start_at> <every> <duration> <end_by> <code> <link_stub>")
+    try:
+        groups = sys.argv[1]
+        start_at = sys.argv[2]
+        every = sys.argv[3]
+        duration = sys.argv[4]
+        end_by = sys.argv[5]
+        code = sys.argv[6]
+        link_stub = sys.argv[7]
+
+    except IndexError:
+        raise SystemExit(f"Usage: {sys.argv[0]} <groups> <start_at> <every> <duration> <end_by> <code> <link_stub>")
 
 
-        starts, tokens = create_token_set(groups, start_at, every, duration, end_by)
-        codes =  create_time_codes(code, starts, every, duration)
+    starts, tokens = create_token_set(groups, start_at, every, duration, end_by)
+    codes =  create_time_codes(code, starts, every, duration)
+    
+    header = ['start','link','duration','groups']
+    now = datetime.now().strftime('%y-%d-%m-%H-%M-%S')
         
-        header = ['start','link','duration','groups']
-        now = datetime.now().strftime('%y-%d-%m-%H-%M-%S')
+    with open('./output/%s/tokens.csv'%(now), 'w') as tf:
+        writer = csv.writer(tf)
+        writer.writerow(header)            
+
+        for start, token, code in zip (starts, tokens, codes):
             
-        with open('./output/%s/tokens.csv'%(now), 'w') as tf:
-            writer = csv.writer(tf)
-            writer.writerow(header)            
-
-            for start, token, code in zip (starts, tokens, codes):
-                
-                # write csv
-                row = [start, link_stub + code, duration, groups]
-                writer.writerow(row)
-                
-                #write token file
-                with open('./output/%s/%s'%(now,code), 'w') as cf:
-                    cf.write(token)
-        
+            # write csv
+            row = [start, link_stub + code, duration, groups]
+            writer.writerow(row)
+            
+            #write token file
+            with open('./output/%s/%s'%(now,code), 'w') as cf:
+                cf.write(token)
+    
            
         
         
