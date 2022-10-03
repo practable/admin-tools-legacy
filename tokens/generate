@@ -10,8 +10,8 @@ Usage:
             generate <groups> <start_datetime> <every> <duration> <end_datetime> <code> <link_stub>
             
 Example usage:
-            generate "truss everyone"  2022-10-03T07:00:00Z 1d 3d  2022-12-21T07:00:00Z truss22 "https://book.practable.io/?c="
-   
+            generate "truss everyone"  2022-10-05T07:00:00Z 1d 3d  2022-12-21T07:00:00Z truss22 "https://book.practable.io/?c="
+
 To test:
     $ ./test
     
@@ -20,6 +20,7 @@ To test:
 import csv
 import jwt
 import os
+import pytz
 import re
 import subprocess
 import sys
@@ -183,9 +184,11 @@ def create_token_set(groups, start_at, every, duration, end_by):
     duration_seconds = duration_to_seconds(duration)
     
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
-    tokens = {}
+    tokens = []
     for start in starts:
-        tokens.append(create_token(groups, start, duration_seconds))
+        # TODO strftime is not timezone aware so we convert to UTC and manually add a Z
+        # https://stackoverflow.com/questions/48724902/python-datetime-use-strftime-with-a-timezone-aware-date
+        tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%d-%mT%H:%M:%SZ'), duration_seconds))
     return starts, tokens   
 
 def time_code(start, day, hour, minute):
@@ -277,8 +280,6 @@ def test_create_time_codes():
     assert codes == [ "test-Sat-1-Oct-3d", "test-Sun-2-Oct-3d"]    
     
 if __name__ == "__main__":
-
-
     
     try:
         groups = sys.argv[1]
@@ -298,7 +299,18 @@ if __name__ == "__main__":
     
     header = ['start','link','duration','groups']
     now = datetime.now().strftime('%y-%d-%m-%H-%M-%S')
-        
+    
+    # Can't create multiple directories in one command so split into two
+    try:
+        os.mkdir('./output')
+    except FileExistsError:
+        pass
+    
+    try:
+        os.mkdir('./output/%s'%(now))
+    except FileExistsError:
+        pass    
+    
     with open('./output/%s/tokens.csv'%(now), 'w') as tf:
         writer = csv.writer(tf)
         writer.writerow(header)            
@@ -311,7 +323,7 @@ if __name__ == "__main__":
             
             #write token file
             with open('./output/%s/%s'%(now,code), 'w') as cf:
-                cf.write(token)
+                cf.write(str(token))
     
            
         
