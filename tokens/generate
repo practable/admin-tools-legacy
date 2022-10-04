@@ -37,7 +37,7 @@ from datetime import datetime, timedelta
 #dateformat = "%d-%m-%y %H:%M:%S"
 dateformat = "%Y-%m-%dT%H:%M:%SZ"
 
-debug = False
+debug = True
 
 def multiplier(x):
     return {
@@ -79,7 +79,7 @@ def test_duration_to_seconds():
     assert duration_to_seconds("2h30m") == ((2 * 3600) + (30 * 60))
     assert duration_to_seconds("3d16h28m42s") == ((3 * 24 * 3600) + (16 * 3600) + (28 * 60) + 42)
 
-def start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime):
+def start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime, exclude_weekends = True):
 
     starts = [start_datetime]
     
@@ -90,8 +90,20 @@ def start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetim
             starts.append(next_start)
         else:
             break
-        
-    return starts    
+    
+    # now filter out weekends if required
+    # simplifies the loop above (avoid infinite loop on first date being weekend etc)
+    
+    sorted_starts = []
+    
+    for start in starts:
+        if exclude_weekends and start.weekday() >= 5:
+            continue
+        sorted_starts.append(start)
+        if debug:
+            print("start day: %d"%start.weekday())
+            
+    return sorted_starts    
 
 def test_start_datetimes():
     
@@ -99,7 +111,7 @@ def test_start_datetimes():
     end_datetime = datetime.strptime('2022-10-10T19:00:00Z', dateformat)
     every_seconds = 24 * 3600
     duration_seconds = 3 * 24 * 3600
-    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)    
+    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime, exclude_weekends = False)    
     
     assert starts == [
         datetime.strptime('2022-10-01T07:00:00Z', dateformat),
@@ -112,7 +124,7 @@ def test_start_datetimes():
         ]
     
     duration_seconds = 1 * 24 * 3600
-    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
+    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime, exclude_weekends = False)   
     assert starts == [
         datetime.strptime('2022-10-01T07:00:00Z', dateformat),
         datetime.strptime('2022-10-02T07:00:00Z', dateformat),
@@ -125,12 +137,22 @@ def test_start_datetimes():
         datetime.strptime('2022-10-09T07:00:00Z', dateformat),      
         ]   
     
+    duration_seconds = 1 * 24 * 3600
+    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime, exclude_weekends = True)   
+    assert starts == [
+        datetime.strptime('2022-10-03T07:00:00Z', dateformat),    #Mon
+        datetime.strptime('2022-10-04T07:00:00Z', dateformat),    #Tues   
+        datetime.strptime('2022-10-05T07:00:00Z', dateformat),    #Wed
+        datetime.strptime('2022-10-06T07:00:00Z', dateformat),    #Thurs       
+        datetime.strptime('2022-10-07T07:00:00Z', dateformat),    #Friday 
+        ]    
+    
     start_datetime = datetime.strptime('2022-10-01T07:00:00Z', dateformat)
     end_datetime = datetime.strptime('2022-10-01T09:00:00Z', dateformat)
     
     every_seconds = 3600
     duration_seconds = 3600
-    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
+    starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime, exclude_weekends = False)   
     assert starts == [
         datetime.strptime('2022-10-01T07:00:00Z', dateformat),
         datetime.strptime('2022-10-01T08:00:00Z', dateformat)
@@ -185,22 +207,35 @@ def test_create_token() :
         print(payload)
     
 # Separate date and time to ease parsing arguments from command line
-def create_token_set(groups, start_at, every, duration, end_by):
+# if weekends are excluded, 48 hours is added to any token ending on weekend day
+def create_token_set(groups, start_at, every, duration, end_by, exclude_weekends=True):
     
     start_datetime = datetime.strptime(start_at, dateformat)    
     end_datetime = datetime.strptime(end_by, dateformat) 
     every_seconds = duration_to_seconds(every)
     duration_seconds = duration_to_seconds(duration)
+    weekend_seconds = 48 * 3600
     
+
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
     tokens = []
+    
     for start in starts:
         if debug:
             print(start)
             print(start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))
+        
+        this_duration_seconds = duration_seconds
+        if exclude_weekends:
+            end_day = start + timedelta(weekend_seconds)
+            if debug:
+                print("%d -> %d"%(start.weekday(), end_day.weekday()))
+                if end_day.weekday() >= 5:
+                    this_duration_seconds = duration_seconds + weekend_seconds
+            
         # TODO strftime is not timezone aware so we convert to UTC and manually add a Z
         # https://stackoverflow.com/questions/48724902/python-datetime-use-strftime-with-a-timezone-aware-date
-        tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), duration_seconds))
+        tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), this_duration_seconds))
     return starts, tokens   
 
 def time_code(start, day, hour, minute):
