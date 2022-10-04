@@ -6,7 +6,11 @@ Administrative tools - these require credentials from your system administrator 
 - [jq](https://stedolan.github.io/jq/)
 - [websocat](https://github.com/vi/websocat)
 - [mo](https://github.com/tests-always-included/mo)
+- [relay](https://github.com/practable/relay)
 
+### For token
+- python 3
+- pytest, pyjwt (`pip install pytest, pyjwt`)
 
 ## Session relay
 
