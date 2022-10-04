@@ -1,5 +1,5 @@
 # admin-tools
-Administrative tools - these require credentials from your system administrator (no credentials included in the repo)
+Administrative tools - these require credentials from your system administrator, that will be in a form like [this](https://github.com/practable/credentials-example)
 
 ## Prerequsites
 
@@ -123,7 +123,7 @@ You can check the token details in the `./output/<now>/validated-tokens.csv` fil
 
 ## Develop
 
-Before making this repo public it was scanned for lingering secrets using [git secrets](https://github.com/msalemcode/git-secrets), including these [patterns](https://github.com/timdrysdale/git-secrets-patterns).
+Before making this repo public it was scanned for secrets using [git secrets](https://github.com/msalemcode/git-secrets), including these [patterns](https://github.com/timdrysdale/git-secrets-patterns).
 
 ```
 git secrets --scan-history
