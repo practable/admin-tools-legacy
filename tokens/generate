@@ -37,7 +37,7 @@ from datetime import datetime, timedelta
 #dateformat = "%d-%m-%y %H:%M:%S"
 dateformat = "%Y-%m-%dT%H:%M:%SZ"
 
-debug = True
+debug = False
 
 def multiplier(x):
     return {
@@ -215,27 +215,36 @@ def create_token_set(groups, start_at, every, duration, end_by, exclude_weekends
     every_seconds = duration_to_seconds(every)
     duration_seconds = duration_to_seconds(duration)
     weekend_seconds = 48 * 3600
-    
-
+    interval = humanize.precisedelta(duration_seconds)
+    if debug:
+        print("interval: %s"%interval)
     starts = start_datetimes(start_datetime, every_seconds, duration_seconds, end_datetime)   
     tokens = []
     
     for start in starts:
-        if debug:
-            print(start)
-            print(start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))
-        
-        this_duration_seconds = duration_seconds
-        if exclude_weekends:
-            end_day = start + timedelta(weekend_seconds)
-            if debug:
-                print("%d -> %d"%(start.weekday(), end_day.weekday()))
-                if end_day.weekday() >= 5:
-                    this_duration_seconds = duration_seconds + weekend_seconds
+        # TODO note that weekend calculations are not timezone aware.
+        start_utc = start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        this_duration_seconds = duration_seconds #reset to default each loop - will adjust later if needed
+        end_date = start + timedelta(seconds=this_duration_seconds)
+        ends_on_weekend = end_date.weekday() >= 5
+        includes_a_weekend = end_date.weekday() < start.weekday()
+        extension_required = (ends_on_weekend or includes_a_weekend) and exclude_weekends
+        if extension_required:
+            end_date += timedelta(seconds=weekend_seconds)
+            this_duration_seconds = duration_seconds + weekend_seconds #adjust duration if ends on weekend
+
+        start_dayword = start.strftime("%a") 
+        end_dayword = end_date.strftime("%a") 
+        interval = humanize.precisedelta(duration_seconds)
+        actual_interval = humanize.precisedelta(end_date.timestamp()-start.timestamp())
             
+        if debug:
+            print("starts %s (%s) for %s and ends %s later on %s (%s), extended by 2days for weekend? %s"%(humanize.naturaltime(start), start_dayword, interval, actual_interval, humanize.naturaltime(end_date), end_dayword, extension_required))
+            
+           
         # TODO strftime is not timezone aware so we convert to UTC and manually add a Z
         # https://stackoverflow.com/questions/48724902/python-datetime-use-strftime-with-a-timezone-aware-date
-        tokens.append(create_token(groups, start.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), this_duration_seconds))
+        tokens.append(create_token(groups, start_utc, this_duration_seconds))
     return starts, tokens   
 
 def time_code(start, day, hour, minute):
@@ -254,6 +263,25 @@ def time_code(start, day, hour, minute):
             
     return code
 
+def get_times_from_token(token):
+    
+      payload = jwt.decode(token, 
+                           "", #no secret 
+                           audience="https://book.practable.io", #to do: allow other audiences
+                           algorithms=["HS256"], 
+                           options={"verify_signature": False, #not checking signature here 
+                                    "verify_nbf": False}  #this fails for future tokens, so ignore
+                           )
+      
+      nbf_ts = int(payload["nbf"]) 
+      exp_ts = int(payload["exp"])
+      
+      nbf = datetime.utcfromtimestamp(nbf_ts) 
+      exp = datetime.utcfromtimestamp(exp_ts)
+      
+      return nbf, exp
+      
+      
 def validate_token(token):
   # return a row of data for the validated-tokens output  
   secret = ""
@@ -335,7 +363,7 @@ def test_time_code():
    
     assert time_code(start, day, hour, minute) == "Sat-1-Oct-7h0m"      
 
-def create_time_codes(code, starts, every, duration):
+def create_time_codes(code, starts, durations): #every, duration, exclude_weekends=true:
     
     every_seconds = duration_to_seconds(every)
      
@@ -374,14 +402,28 @@ def test_create_time_codes():
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-def create_id_codes(code, starts, every, duration):
+def create_id_codes(code, tokens): 
     
-    time_codes = create_time_codes(code, starts, every, duration)
+    #time_codes = create_time_codes(code, starts, every, duration)
     
     codes = []
     
-    for tc  in time_codes:
-        codes.append("-".join([tc, id_generator()]))
+    for token in tokens:
+       
+        # get start and end times from token
+        nbf, exp = get_times_from_token(token)
+
+        # turn into string e.g. <code>-Mon-5-Oct-for-3-days
+        tc = code
+        tc += nbf.strftime("-%a-%d-%b-for-")
+        tc += "-".join(humanize.precisedelta(exp-nbf).split(" "))
+        tc += "-" + id_generator()
+        
+        codes.append(tc)
+        
+    # add random code
+    #for tc  in time_codes:
+    #    codes.append("-".join([tc, id_generator()]))
     
     return codes
     
@@ -400,8 +442,8 @@ if __name__ == "__main__":
         raise SystemExit(f"Usage: {sys.argv[0]} <groups> <start_at> <every> <duration> <end_by> <code> <link_stub>")
 
 
-    starts, tokens = create_token_set(groups, start_at, every, duration, end_by)
-    codes =  create_id_codes(code, starts, every, duration)
+    starts, tokens = create_token_set(groups, start_at, every, duration, end_by, exclude_weekends = True)
+    codes =  create_id_codes(code, tokens)
     
     header = ['start','link','duration','groups']
     now = datetime.now().strftime('%y-%d-%m-%H-%M-%S')
