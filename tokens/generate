@@ -446,7 +446,7 @@ if __name__ == "__main__":
     codes =  create_id_codes(code, tokens)
     
     header = ['start','link','duration','groups']
-    now = datetime.now().strftime('%y-%d-%m-%H-%M-%S')
+    now = datetime.now().strftime('%y-%m-%d-%H-%M-%S')
     
     # Can't create multiple directories in one command so split into two
     try:
