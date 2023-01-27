@@ -3,11 +3,11 @@
 # Make token
 export ACCESSTOKEN_LIFETIME=30
 export ACCESSTOKEN_ROLE=client
-export ACCESSTOKEN_SECRET=$(cat ~/secret/sessionrelay.pat)
+export ACCESSTOKEN_SECRET=$(cat ~/secret/v0/relay.pat)
 export ACCESSTOKEN_TOPIC=stats
 export ACCESSTOKEN_CONNECTIONTYPE=session
-export ACCESSTOKEN_AUDIENCE=https://relay-access.practable.io
-export client_token=$(sessionrelay token)
+export ACCESSTOKEN_AUDIENCE=https://dev.practable.io/access
+export client_token=$(relay token)
 echo "client_token=${client_token}"
 
 # Request Access
