@@ -1,4 +1,6 @@
 #!/bin/bash
+# pipe token into script
+
 # https://gist.github.com/angelo-v/e0208a18d455e2e6ea3c40ad637aac53
 # pad base64URL encoded to base64
 paddit() {
@@ -11,9 +13,8 @@ paddit() {
   done
   echo $input
 }
-
-# read and split the token and do some base64URL translation
-read -p "Enter token to decode: " jwt
+read jwt
+## read the first argument and parse into sections
 read h p s <<< $(echo $jwt | tr [-_] [+/] | sed 's/\./ /g')
 
 h=`paddit $h`
