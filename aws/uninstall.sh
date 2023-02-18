@@ -1,3 +1,3 @@
 #!/bin/bash
-rm -rf ./.cmd/
+rm -rf ./.source/
 rm -rf ./bin/

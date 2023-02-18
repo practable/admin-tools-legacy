@@ -1,5 +1,5 @@
 # source and executables
-.cmd/
+.source/
 bin/
 
 # temp files
