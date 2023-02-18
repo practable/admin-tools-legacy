@@ -1,0 +1,7 @@
+# source and executables
+.cmd/
+bin/
+
+# temp files
+*~
+.#*
