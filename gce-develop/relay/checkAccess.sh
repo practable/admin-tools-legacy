@@ -46,7 +46,7 @@ export RELAY_TOKEN_SCOPE_WRITE=false
 export RELAY_TOKEN_SECRET=$(cat ~/secret/v0/relay.pat)
 export RELAY_TOKEN_TOPIC=stats
 export RELAY_TOKEN_AUDIENCE=https://dev.practable.io/access
-export client_token=$(relay token)
+export client_token=$(../bin/relay token)
 echo "client token:"
 echo ${client_token}
 echo ""
