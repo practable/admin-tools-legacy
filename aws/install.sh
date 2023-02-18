@@ -17,3 +17,10 @@ cp shell ../../../../bin/shellrelay
 cd ../book
 go build
 cp book ../../../../bin/book
+
+## Make the legacy version of shellrelay (incompatible with new version because it expects a token audience that is not an array)
+cd ../..
+git checkout v0.2.0
+cd cmd/shell
+go build
+cp shell ../../../../bin/shellrelay-legacy

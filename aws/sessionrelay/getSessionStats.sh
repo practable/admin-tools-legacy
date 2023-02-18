@@ -7,7 +7,7 @@ export ACCESSTOKEN_SECRET=$(cat ~/secret/sessionrelay.pat)
 export ACCESSTOKEN_TOPIC=stats
 export ACCESSTOKEN_CONNECTIONTYPE=session
 export ACCESSTOKEN_AUDIENCE=https://relay-access.practable.io
-export client_token=$(sessionrelay token)
+export client_token=$(../bin/sessionrelay token)
 echo "client_token=${client_token}"
 
 # Request Access

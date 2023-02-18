@@ -7,7 +7,7 @@ export SHELLTOKEN_SECRET=$(cat ~/secret/shellrelay2.pat)
 export SHELLTOKEN_TOPIC=stats
 export SHELLTOKEN_CONNECTIONTYPE=shell
 export SHELLTOKEN_AUDIENCE=https://shell-access2.practable.io
-export client_token=$(shellrelay token)
+export client_token=$(../bin/shellrelay token)
 echo "client_token=${client_token}"
 
 # Request Access

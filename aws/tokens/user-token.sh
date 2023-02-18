@@ -8,6 +8,6 @@ export BOOKTOKEN_GROUPS=$2
 export BOOKTOKEN_NBF=$3
 export BOOKTOKEN_LIFETIME=$4
 export BOOKTOKEN_ADMIN=false
-export USERTOKEN=$(book token)
+export USERTOKEN=$(../bin/book token)
 echo ${USERTOKEN}
 
