@@ -1,4 +1,9 @@
 #!/bin/bash
+sshpass=$(which sshpass)
+if [ ! $? -eq 0 ]; then
+   echo "please install sshpass then try again"
+fi
+
 go=$(which go)
 if [ ! $? -eq 0 ]; then
    echo "please install go then try again"
