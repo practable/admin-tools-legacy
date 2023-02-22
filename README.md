@@ -8,6 +8,11 @@ Administrative tools - these require credentials from your system administrator,
 - [mo](https://github.com/tests-always-included/mo)
 - [relay](https://github.com/practable/relay)
 
+For logins via shellrelay, you will get remote host authentication warnings unless you add this line to `~/.ssh/config` (you may need to create the file, in which case you only need this line, no other lines are required)
+```
+NoHostAuthenticationForLocalhost yes
+```
+
 ### For token
 - python 3
 - extra modules required: `humanize`, `pytest`, `pyjwt`
