@@ -88,13 +88,14 @@ elif [ "$command" = "3" ];
 then
 	export BOOKCLIENT_FORMAT=yaml
 	../bin/book bookings export
+	#curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" 
 elif [ "$command" = "4" ];
 then
 	read -p "Definitely replace [y/N]?" confirm
 	if ([ "$confirm" == "y" ] || [ "$confirm" == "Y" ]  || [ "$confirm" == "yes"  ] );
 	then
-		../bin/book bookings replace ../demo/bookings.yaml #boiler plate code doesn't report the error messages (just get pointer values) ... :-(
-		#curl --data-binary "@../demo/bookings.yaml"  -X PUT -H "Authorization: ${BOOKCLIENT_TOKEN}" -H "Content-type: text/plain" "${BOOKCLIENT_HOST}/api/v1/admin/bookings" 
+		#../bin/book bookings replace ../demo/bookings.yaml #boiler plate code doesn't report the error messages (just get pointer values) ... :-(
+		curl --data-binary "@./generated_bookings.json"  -X PUT -H "Authorization: ${BOOK_CLIENT_TOKEN}" -H "Content-type: application/json" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" 
 	fi
 
 elif [ "$command" = "5" ];
