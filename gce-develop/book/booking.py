@@ -57,7 +57,8 @@ if not all_equal(lengths):
 slot_count = lengths[0]    
 
 generated_bookings = []    
-
+session_links=[]
+session_stub="https://dev.practable.io/book/?session="
 for name in obj["sessions"]:
  
     session = obj["sessions"][name]
@@ -78,6 +79,8 @@ for name in obj["sessions"]:
     
     for i in range(slot_count):
         user = '-'.join([session["prefix"], begins,ends,session["suffix"], format(i, '03d'),code(6)])
+        
+        session_links.append(session_stub + user)
      
         bi = 0
         for booking in bookings:
@@ -106,5 +109,10 @@ with open(r'generated_bookings.yaml', 'w') as file:
     yaml.dump(generated_bookings, file, default_flow_style=False)
     
 with open(r'generated_bookings.json', 'w') as file:
-    json.dump(generated_bookings, file)   
+    json.dump(generated_bookings, file) 
+    
+    
+    
+with open(r'booking-links.txt', 'w') as file:
+        file.writelines(session_links)
 
