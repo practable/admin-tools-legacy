@@ -12,10 +12,22 @@ import string
 import yaml
 import json
 
-symbols = string.ascii_letters + string.digits
+symbols = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789" #avoid 0,O, l,1
+codes_used = {}
 
 def code(length):
     return ''.join(random.choice(symbols) for i in range(length))
+
+def unique_code():
+    c = code(6)
+    
+    while c in codes_used: #try again until not found in list
+        c = code(8)
+    
+    codes_used[c]=True
+    return c
+    
+    
 
 # https://stackoverflow.com/questions/3844801/check-if-all-elements-in-a-list-are-identical
 def all_equal(iterator):
@@ -59,6 +71,7 @@ slot_count = lengths[0]
 generated_bookings = []    
 session_links=[]
 session_stub="https://dev.practable.io/book/?session="
+descriptions=[]
 for name in obj["sessions"]:
  
     session = obj["sessions"][name]
@@ -78,9 +91,11 @@ for name in obj["sessions"]:
     ends = latest.strftime("%H%M")
     
     for i in range(slot_count):
-        user = '-'.join([session["prefix"], begins,ends,session["suffix"], format(i, '03d'),code(6)])
+        c = unique_code()
+        description = '-'.join([session["prefix"], begins,ends,session["suffix"], format(i, '03d'),c])
         
-        session_links.append(session_stub + user + "\n")
+        session_links.append(session_stub + c + "\n")
+        descriptions.append(description)
      
         bi = 0
         for booking in bookings:
@@ -89,8 +104,8 @@ for name in obj["sessions"]:
             policy = slot_lists[booking["slot_list"]]["policy"]
            
             generated_bookings.append({
-                    "name": user + "-" + format(bi, '02d'),
-                    "user": user,
+                    "name": c + "-" + format(bi, '02d'),
+                    "user": c,
                     "slot": slot,
                     "policy": policy,
                     "when": {
@@ -111,8 +126,13 @@ with open(r'generated_bookings.yaml', 'w') as file:
 with open(r'generated_bookings.json', 'w') as file:
     json.dump(generated_bookings, file) 
     
+
+lines = []
+
+for description, link in zip(descriptions, session_links):
+    lines.append(description + ", " + link + "\n")
     
     
 with open(r'booking-links.txt', 'w') as file:
-        file.writelines(session_links)
+        file.writelines(lines)
 
