@@ -80,7 +80,7 @@ for name in obj["sessions"]:
     for i in range(slot_count):
         user = '-'.join([session["prefix"], begins,ends,session["suffix"], format(i, '03d'),code(6)])
         
-        session_links.append(session_stub + user)
+        session_links.append(session_stub + user + "\n")
      
         bi = 0
         for booking in bookings:
