@@ -86,9 +86,9 @@ then
 	../bin/book status set unlock "$message"
 elif [ "$command" = "3" ];
 then
-	export BOOKCLIENT_FORMAT=yaml
+	#export BOOKCLIENT_FORMAT=yaml
 	#../bin/book bookings export
-	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" 
+	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" > exported_bookings.json
 elif [ "$command" = "4" ];
 then
 	read -p "Definitely replace [y/N]?" confirm
