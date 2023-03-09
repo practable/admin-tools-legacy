@@ -2,7 +2,26 @@
 
 # serve.sh is a script to help with loading
 # and resetting the manifest at
-# dev.practable.io/book
+# book.practable.io
+
+function freeport(){
+ #https://unix.stackexchange.com/questions/55913/whats-the-easiest-way-to-find-an-unused-local-port
+ port=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | sort -n | head -n 1)
+}
+
+freeport
+
+export BOOK_PORT="${port}"
+export BOOK_LOGINTIME=1h
+export BOOK_AUDIENCE=localhost
+export BOOK_ADMIN_SECRET=replace-me-with-some-long-secret
+export BOOK_RELAY_SECRET=replace-me-with-another-long-secret
+export BOOK_LOG_FILE=stdout
+export BOOK_LOG_LEVEL=debug
+export BOOK_LOG_FORMAT=text
+
+../bin/book serve &
+book_pid=$!
 
 # pad base64URL encoded to base64
 # from https://gist.github.com/angelo-v/e0208a18d455e2e6ea3c40ad637aac53
@@ -22,17 +41,17 @@ then
 	echo 'you must set BOOK_ADMIN_SECRET'
 fi
 
-export BOOK_CLIENT_HOST=dev.practable.io
-export BOOK_CLIENT_BASE_PATH=/book/api/v1
-export BOOK_CLIENT_SCHEME=https
-export BOOK_CLIENT_SECRET=$(cat ~/secret/v0/book.pat)
-export BOOK_CLIENT_TOKEN_AUD=https://dev.practable.io/book
+export BOOK_CLIENT_HOST="localhost:${port}"
+export BOOK_CLIENT_BASE_PATH=/api/v1
+export BOOK_CLIENT_SCHEME=http
+export BOOK_CLIENT_SECRET=$BOOK_ADMIN_SECRET
+export BOOK_CLIENT_TOKEN_AUD=localhost
 export BOOK_CLIENT_TOKEN_TTL=5m
 export BOOK_CLIENT_TOKEN_ADMIN=true
 export BOOK_CLIENT_TOKEN_SUB=admin
 export BOOK_CLIENT_TOKEN=$(../bin/book token)
 echo "Admin token:"
-echo ${BOOK_CLIENT_TOKEN}
+echo ${BOOKCLIENT_TOKEN}
 
 # read and split the token and do some base64URL translation
 read h p s <<< $(echo $BOOKCLIENT_TOKEN | tr [-_] [+/] | sed 's/\./ /g')
@@ -48,6 +67,10 @@ set | grep BOOKCLIENT
 
 echo "book server at ${BOOKCLIENT_HOST} (testing)"
 
+# upload the latest manifest
+../bin/book manifest replace ~/sources/manifest-gce-develop/manifest.yaml
+
+
 echo "commands:"
 echo
 echo "  0: Get status"
@@ -60,11 +83,6 @@ echo
 echo "  5: Export old bookings"
 echo "  6: Replace old bookings"
 echo 
-echo "  7: Check manifest"
-echo "  8: Export manifest"
-echo "  9: Replace manifest (JSON)"
-echo "  a: Replace manifest (YAML)"
-echo 
 echo "  b: Export users"
 echo "  c: start insecure chrome"
 
@@ -74,8 +92,6 @@ do
 if [ "$command" = "0" ];
 then
  	../bin/book status get
-	#not working curl -X GET -H "Authorization: ${BOOKCLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/status"
-	
 elif [ "$command" = "1" ];
 then
 	read -p 'Enter lock message:' message
@@ -86,23 +102,21 @@ then
 	../bin/book status set unlock "$message"
 elif [ "$command" = "3" ];
 then
-	#export BOOKCLIENT_FORMAT=yaml
-	#../bin/book bookings export
-	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" > exported_bookings.json
+	export BOOKCLIENT_FORMAT=yaml
+	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" > ./data/exported_bookings_test.json
 elif [ "$command" = "4" ];
 then
 	read -p "Definitely replace [y/N]?" confirm
 	if ([ "$confirm" == "y" ] || [ "$confirm" == "Y" ]  || [ "$confirm" == "yes"  ] );
 	then
-		#../bin/book bookings replace ../demo/bookings.yaml #boiler plate code doesn't report the error messages (just get pointer values) ... :-(
-		curl --data-binary "@./generated_bookings.json"  -X PUT -H "Authorization: ${BOOK_CLIENT_TOKEN}" -H "Content-type: application/json" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" 
+		curl --data-binary "@./data/bookings.json"  -X PUT -H "Authorization: ${BOOK_CLIENT_TOKEN}" -H "Content-type: application/json" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/bookings" 
 	fi
 
 elif [ "$command" = "5" ];
 then
 	export BOOKCLIENT_FORMAT=yaml
-	#../bin/book oldbookings export
-	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/oldbookings" > exported_old_bookings.json 
+
+	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/oldbookings" > ./data/exported_old_bookings_test.json 
 elif [ "$command" = "6" ];
 then
 	read -p "Definitely replace [y/N]?" confirm
@@ -110,27 +124,6 @@ then
 	then	
 	    echo "replace old bookings"
 	fi	
-
-elif [ "$command" = "7" ];
-then
-	../bin/book manifest check ../demo/manifest.yaml
-elif [ "$command" = "8" ];
-then
-	export BOOKCLIENT_FORMAT=yaml
-	../bin/book manifest export 
-elif [ "$command" = "9" ];
-then
-	read -p "Definitely replace [y/N]?" confirm
-	if ([ "$confirm" == "y" ] || [ "$confirm" == "Y" ]  || [ "$confirm" == "yes"  ] );
-	then
-	        export BOOKCLIENT_FORMAT=json
-	    	../bin/book manifest replace ../demo/manifest.json
-	fi
-
-elif [ "$command" = "a" ];
-then
-    		export BOOKCLIENT_FORMAT=yaml
-		../bin/book manifest replace ../demo/manifest2.yaml
 		
 elif [ "$command" = "b" ];
 then

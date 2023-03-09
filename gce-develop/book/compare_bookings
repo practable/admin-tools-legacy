@@ -9,10 +9,10 @@ import json
 from deepdiff import DeepDiff 
 import pyrfc3339 as rfc3339
    
-with open("generated_bookings.json") as file:
+with open("./data/bookings.json") as file:
     gb = json.load(file)
     
-with open("exported_bookings.json") as file:
+with open("./data/exported_bookings.json") as file:
     eb = json.load(file)    
  
 
@@ -46,6 +46,7 @@ for item in eb:
     
     
 ddiff = DeepDiff(gbr, ebr, ignore_order=True)
-print (ddiff)
+if not ddiff == {}:
+    print (ddiff)
     
     

@@ -6,11 +6,16 @@ Created on Thu Feb 23 14:50:27 2023
 @author: tim
 """
 
+# usage: generate-bookings #uses ./data/booking-plan.yaml
+# usage: generate-bookings some-other-booking-plan.yaml
+
 import datetime
+import json
 import random
 import string
+import sys
 import yaml
-import json
+
 
 symbols = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789" #avoid 0,O, l,1
 codes_used = {}
@@ -42,7 +47,12 @@ def all_equal(iterator):
 yaml.add_representer(datetime.datetime, lambda self, data:
                      self.represent_scalar('tag:yaml.org,2002:str', data.replace(tzinfo=None).isoformat('T') +'Z'))   
 
-f = open("generate-example-input.yaml", "r")
+booking_plan = "./data/booking-plan.yaml"
+
+if (len(sys.argv) > 1):
+    booking_plan = sys.argv[1]
+
+f = open(booking_plan, "r")
 
 document = f.read()
 
@@ -63,14 +73,14 @@ for item in slot_lists:
 if not all_equal(lengths):
     print("slot lists lengths do not match")
     for item in slot_lists:
-        print(item + ": " + len(slot_lists[item]["slots"]))
+        print(item + ": " + str(len(slot_lists[item]["slots"])))
     exit(1)
 
 slot_count = lengths[0]    
 
 generated_bookings = []    
 session_links=[]
-session_stub="https://dev.practable.io/book/?session="
+session_stub="https://dev.practable.io/book/?s="
 descriptions=[]
 for name in obj["sessions"]:
  
@@ -120,10 +130,10 @@ for name in obj["sessions"]:
    
 
 #print(yaml.dump(generated_bookings, default_flow_style=False))
-with open(r'generated_bookings.yaml', 'w') as file:
+with open(r'./data/generated_bookings.yaml', 'w') as file:
     yaml.dump(generated_bookings, file, default_flow_style=False)
     
-with open(r'generated_bookings.json', 'w') as file:
+with open(r'./data/generated_bookings.json', 'w') as file:
     json.dump(generated_bookings, file) 
     
 
@@ -133,6 +143,6 @@ for description, link in zip(descriptions, session_links):
     lines.append(description + ", " + link + "\n")
     
     
-with open(r'booking-links.txt', 'w') as file:
+with open(r'./data/booking-links.txt', 'w') as file:
         file.writelines(lines)
 
