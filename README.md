@@ -1,135 +1,299 @@
 # admin-tools
-Administrative tools - these require credentials from your system administrator, that will be in a form like [this](https://github.com/practable/credentials-example)
 
-## Prerequsites
+This repo contains scripts to help administer our two currently-running systems.
+
+- aws (running on relay v0.2.3 with instant-use non-cancellable bookings)
+- gce-develop (running latest relay with advance, cancellable bookings)
+
+The tools for each system are in a different repo, because they have different pre-requisites.
+
+## Setup
+
+### Practable binaries
+
+Clone the repo, then run the install scripts for each system
+
+```
+cd aws
+./install.sh
+cd ../gce-develop
+./install.sh
+```
+
+This will install the correct version of the practable binaries for interacting with each system.
+
+### Other pre-requsites
+
+There are additional pre-requisites you may need to install, depending on which system(s) you are using.
+
 
 - [jq](https://stedolan.github.io/jq/)
 - [websocat](https://github.com/vi/websocat)
 - [mo](https://github.com/tests-always-included/mo)
 - [relay](https://github.com/practable/relay)
+- [yq](https://github.com/mikefarah/yq)
 
-For logins via shellrelay, you will get remote host authentication warnings unless you add this line to `~/.ssh/config` (you may need to create the file, in which case you only need this line, no other lines are required)
-```
-NoHostAuthenticationForLocalhost yes
-```
 
-### For token
-- python 3
-- extra modules required: `humanize`, `pytest`, `pyjwt`
+## Overview
 
-## Session relay
+We currently run a fleet of 129 experiments
 
-For a quick look at which , say, `trus` experiments are connected, use:
+10 x gen 1 spinners (on hold)
+10 x gen 1 turners (on hold)
+10 x gen 1 governors (on hold)
+48 x gen 2 spinners (spin30-77)
+32 x gen 1 pendulums (pend00-40, with some loaned to other locations)
+8 x medium trusses (trus00-08)
+5 x pocket VNA one-port (pvna00-04)
+6 x pocket VAN two-port (pvna05-10)
 
-```
-./getSessionStats.s | grep trus
-```
+All experiments use the AWS system's shellrelay for administrative access. Some experiments connect only to the shellrelay2, some connect to shellrelay as well
+All gen 2 spinners and gen 1 pendulums send video and data to both systems, but are currently only bookable on the gce-develop system.
+All trusses and pvna are bookable through the aws system only.
 
-To see details of message traffic, show extra lines, this example is 
+It is intended to migrate all experiments to have their data and video directed only to the new system, and retire the sessionrelay and bookrelay service on aws, but keep the shellrelay (for the time being).
 
-```
-$ ./getSessionStats.sh| grep trus -A 18 -B1
-  {
-    "topic": "trus00-video",
-    "canRead": false,
-    "canWrite": true,
-    "connected": "2022-09-06 17:57:32.005911887 +0000 UTC m=+5005749.041827758",
-    "remoteAddr": "129.215.182.88",
-    "userAgent": "Go-http-client/1.1",
-    "stats": {
-      "tx": {
-        "last": "20.01161ms",
-        "size": 5783,
-        "fps": 23.869676144597026
-      },
-      "rx": {
-        "last": "Never",
-        "size": 0,
-        "fps": 0
-      }
-    }
-  },
---
-  {
-    "topic": "trus00-data",
-    "canRead": true,
-    "canWrite": true,
-    "connected": "2022-09-06 17:56:36.299197457 +0000 UTC m=+5005693.335113328",
-    "remoteAddr": "129.215.182.88",
-    "userAgent": "Go-http-client/1.1",
-    "stats": {
-      "tx": {
-        "last": "1.361034858s",
-        "size": 65,
-        "fps": 1.1077586188437158
-      },
-      "rx": {
-        "last": "210h28m24.519900974s",
-        "size": 9,
-        "fps": 0.06805585812345667
-      }
-    }
-  },
-```
+## System status
 
-If you are not getting data, check that the access server is working ok (this example is working ok)
+### Experiment health
 
-```
-./checkAccess.sh
-$client_token=ey...
-https://relay-access.practable.io/session/stats
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100    91  100    91    0     0   1716      0 --:--:-- --:--:-- --:--:--  1716
-{"uri":"wss://relay.practable.io/session/stats?code=575bf3fd-de78-4349-a9d6-04788fd19ed7"}
-```
-##  Shellrelay
+See what is connected using `./aws/shellrelay/identify2.sh`
 
-Note that for a limited period, we are running an older version of the relay code for shell, and the latest version for shell2. Therefore with the latest version of relay installed on your admin machine, only shell2 scripts will work. The shell scripts will fail with a message about an audience in the JSON token. 
+## Experiment video and data connections
 
+Check what is connected and streaming using the `./gce-develop/relay/getStats.sh` or `./aws/sessionrelay/getSessionStats.sh` scripts, depending which system is of interest.
+
+## Manifest
+
+See separate repos for manifests
+
+[manifest-aws](https://github.com/practable/manifest-aws)
+[manifest-gce-develop](https://github.com/practable/manifest-gce-develop)
 
 ## Tokens
 
-This script was written to support a specific use case, with the following features
+### AWS
 
-- short duration tokens (three days) to be issued to students on various days during the semester
-- the duration to exclude weekend working time (e.g. a three-day token starting on Friday ends on Wednesday, not Monday)
+there are token generation scripts in `./aws/tokens`, such as `./generate` that provides a set of links starting every given interval for a given duration 
 
-It relies on the admin credentials being available - see [private credentails repo](https://github.com/practable/credentials-uoe-soe) (note if this 404s it is because you are not an admin on our UoE system and hence won't have access to our credentials file).
 
-### Usage
+Usage:
 ```
-./generate <groups> <start_at> <every> <duration> <end_by> <code> <link_stub>
+generate <groups> <start_datetime> <every> <duration> <end_datetime> <code> <link_stub>
 ```
 
+Example::
+```
+generate "truss everyone"  2022-10-05T07:00:00Z 1d 3d  2022-12-21T07:00:00Z truss22 "https://book.practable.io/?c="
+```
 
-### Example 
+### gce-develop
+
+
+A different approach is taken where actual individual bookings are generated (or pairs or more of bookings) according to a `booking-plan.yaml`
+
+Go to `./gce-develop/book` and edit `booking-plan.yaml` 
+
+The format is like this:
 
 ```
-cd tokens
-./generate "truss everyone"  2022-10-04T06:00:00Z 1d 3d  2022-12-21T06:00:00Z truss22 "https://book.practable.io/?c="
+---
+slot_lists:
+  pend:
+    policy: p-engdes1-lab-pend
+    slots:
+    - sl-engdes1-lab-pend00
+    - sl-engdes1-lab-pend02
+    - sl-engdes1-lab-pend03
+    - sl-engdes1-lab-pend04
+    - sl-engdes1-lab-pend05
+    - sl-engdes1-lab-pend06
+    - sl-engdes1-lab-pend07       
+    - sl-engdes1-lab-pend08
+    - sl-engdes1-lab-pend09
+    - sl-engdes1-lab-pend10
+    - sl-engdes1-lab-pend11
+    - sl-engdes1-lab-pend12
+    - sl-engdes1-lab-pend13
+    - sl-engdes1-lab-pend14
+    - sl-engdes1-lab-pend15
+    - sl-engdes1-lab-pend16
+    - sl-engdes1-lab-pend17       
+    - sl-engdes1-lab-pend20
+    - sl-engdes1-lab-pend21
+    - sl-engdes1-lab-pend22
+    - sl-engdes1-lab-pend23
+    - sl-engdes1-lab-pend36
+    - sl-engdes1-lab-pend26
+    - sl-engdes1-lab-pend27       
+    - sl-engdes1-lab-pend28
+    - sl-engdes1-lab-pend29
+    - sl-engdes1-lab-pend31
+    - sl-engdes1-lab-pend33
+    - sl-engdes1-lab-pend34
+    - sl-engdes1-lab-pend35
+    
+  spin:
+    policy: p-engdes1-lab-spin
+    slots: 
+    - sl-engdes1-lab-spin30
+    - sl-engdes1-lab-spin32
+    - sl-engdes1-lab-spin33
+    - sl-engdes1-lab-spin34
+    - sl-engdes1-lab-spin35
+    - sl-engdes1-lab-spin36
+    - sl-engdes1-lab-spin37       
+    - sl-engdes1-lab-spin38
+    - sl-engdes1-lab-spin39
+    - sl-engdes1-lab-spin40
+    - sl-engdes1-lab-spin41
+    - sl-engdes1-lab-spin46
+    - sl-engdes1-lab-spin47       
+    - sl-engdes1-lab-spin48
+    - sl-engdes1-lab-spin49
+    - sl-engdes1-lab-spin51
+    - sl-engdes1-lab-spin52
+    - sl-engdes1-lab-spin53
+    - sl-engdes1-lab-spin54
+    - sl-engdes1-lab-spin55
+    - sl-engdes1-lab-spin56
+    - sl-engdes1-lab-spin57       
+    - sl-engdes1-lab-spin58
+    - sl-engdes1-lab-spin59
+    - sl-engdes1-lab-spin60
+    - sl-engdes1-lab-spin61
+    - sl-engdes1-lab-spin62
+    - sl-engdes1-lab-spin63
+    - sl-engdes1-lab-spin65
+    - sl-engdes1-lab-spin66   
+windows:
+  friday-10-mar-10am-12pm:
+    start: 2023-03-10T09:59:59Z
+    end:   2023-03-10T12:00:01Z
+  monday-13-mar-2pm-4pm:
+    start: 2023-03-13T13:59:59Z
+    end:   2023-03-13T16:00:01Z
+  monday-13-mar-4pm-6pm:
+    start: 2023-03-13T15:59:59Z
+    end:   2023-03-13T18:00:01Z
+  tuesday-14-mar-2pm-4pm:
+    start: 2023-03-14T13:59:59Z
+    end:   2023-03-14T16:00:01Z
+  tuesday-14-mar-4pm-6pm:
+    start: 2023-03-14T15:59:59Z
+    end:   2023-03-14T18:00:01Z      
+sessions:
+  friday-10-mar-2023-12pm-A:
+    prefix: engdes1
+    suffix: pend-then-spin
+    bookings:
+      - start: 2023-03-10T10:10:01Z
+        end:   2023-03-10T11:09:59Z
+        slot_list: pend 
+      - start: 2023-03-10T11:10:00Z
+        end:   2023-03-10T11:59:59Z
+        slot_list: spin
+  friday-10-mar-2023-12pm-B:
+    prefix: engdes1
+    suffix: spin-then-pend
+    bookings:
+      - start: 2023-03-10T10:10:00Z
+        end:   2023-03-10T11:09:59Z
+        slot_list: spin
+      - start: 2023-03-10T11:10:01Z
+        end:   2023-03-10T11:59:59Z
+        slot_list: pend 
+  monday-13-mar-2023-2pm-A:
+    prefix: engdes1
+    suffix: pend-then-spin
+    bookings:
+      - start: 2023-03-13T14:10:01Z
+        end:   2023-03-13T15:09:59Z
+        slot_list: pend
+      - start: 2023-03-13T15:10:00Z
+        end:   2023-03-13T15:59:59Z
+        slot_list: spin
+  monday-13-mar-2023-2pm-B:
+    prefix: engdes1
+    suffix: spin-then-pend
+    bookings:
+      - start: 2023-03-13T14:10:00Z
+        end:   2023-03-13T15:09:59Z
+        slot_list: spin
+      - start: 2023-03-13T15:10:01Z
+        end:   2023-03-13T15:59:59Z
+        slot_list: pend
+  monday-13-mar-2023-4pm-A:
+    prefix: engdes1
+    suffix: pend-then-spin
+    bookings:
+      - start: 2023-03-13T16:10:01Z
+        end:   2023-03-13T17:09:59Z
+        slot_list: pend
+      - start: 2023-03-13T17:10:01Z
+        end:   2023-03-13T17:59:59Z
+        slot_list: spin
+  monday-13-mar-2023-4pm-B:
+    prefix: engdes1
+    suffix: spin-then-pend
+    bookings:
+      - start: 2023-03-13T16:10:01Z
+        end:   2023-03-13T17:09:59Z
+        slot_list: spin
+      - start: 2023-03-13T17:10:01Z
+        end:   2023-03-13T17:59:59Z
+        slot_list: pend
+  tuesday-14-mar-2023-2pm-A:
+    prefix: engdes1
+    suffix: pend-then-spin
+    bookings:
+      - start: 2023-03-14T14:10:01Z
+        end:   2023-03-14T15:09:59Z
+        slot_list: pend
+      - start: 2023-03-14T15:10:01Z
+        end:   2023-03-14T15:59:59Z
+        slot_list: spin
+  tuesday-14-mar-2023-2pm-B:
+    prefix: engdes1
+    suffix: spin-then-pend
+    bookings:
+      - start: 2023-03-14T14:10:01Z
+        end:   2023-03-14T15:09:59Z
+        slot_list: spin
+      - start: 2023-03-14T15:10:01Z
+        end:   2023-03-14T15:59:59Z
+        slot_list: pend
+  tuesday-14-mar-2023-4pm-A:
+    prefix: engdes1
+    suffix: pend-then-spin
+    bookings:
+      - start: 2023-03-14T16:10:01Z
+        end:   2023-03-14T17:09:59Z
+        slot_list: pend
+      - start: 2023-03-14T17:10:01Z
+        end:   2023-03-14T17:59:59Z
+        slot_list: spin
+  tuesday-14-mar-2023-4pm-B:
+    prefix: engdes1
+    suffix: spin-then-pend
+    bookings:
+      - start: 2023-03-14T16:10:01Z
+        end:   2023-03-14T17:09:59Z
+        slot_list: spin
+      - start: 2023-03-14T17:10:01Z
+        end:   2023-03-14T17:59:59Z
+        slot_list: pend          
 ```
-Note that in the time strings, the T and Z are required to suit the time format, and timezone support is incomplete, so assume everything is in UTC.
-
-The 'every', and 'duration' parameters support durations in a bash-like duration format (represented here in pseudo regexp form): `([0-9]*d)*(?[0-9]*h)*(?[0-9]*m)*(?[0-9]*s)*` i.e. `1d2h` would be 26 hours.
-
-You run the tests in the script with `./test` because pytest ignores files that don't end in `.py` (so this script temporarily makes a file with the right ending, then deletes it after the tests).
-
-The output from the script is found in `./output/<now>`. The `generate` script relies on finding the `user-token.sh` script in the same directory, hence the decision to use automatically-created subdirectories rather than try and get both scripts on the path.
-
-You can check the token details in the `./output/<now>/validated-tokens.csv` file. This is the file to share with your course organiser, so they can distribute the links to their students. The output might look something like this:
-
-|link                                                             |nbf_ts    |nbf                |exp                |signature|duration|groups               |
-|-----------------------------------------------------------------|----------|-------------------|-------------------|---------|--------|---------------------|
-|https://book.practable.io/?c=truss22-Tue-04-Oct-for-3-days-5YAXQ1|1664875038|2022-10-04 09:17:18|2022-10-07 09:17:18|True     |3 days  |['truss', 'everyone']|
-|https://book.practable.io/?c=truss22-Wed-05-Oct-for-5-days-BC12JK|1664946000|2022-10-05 05:00:00|2022-10-10 05:00:00|True     |5 days  |['truss', 'everyone']|
-|https://book.practable.io/?c=truss22-Thu-06-Oct-for-5-days-G78MV1|1665032400|2022-10-06 05:00:00|2022-10-11 05:00:00|True     |5 days  |['truss', 'everyone']|
 
 
-## Develop
+The above plan produces 30 pairs of bookings for each of 10 sessions, for a total of 600 bookings.
 
-Before making this repo public it was scanned for secrets using [git secrets](https://github.com/msalemcode/git-secrets), including these [patterns](https://github.com/timdrysdale/git-secrets-patterns).
+More details on how to upload these bookings (including keeping existing user bookings) is [here](./gce-develop/book/README.ms)
+
+The booking links are provided in `gce-develop/book/data/booking-links.txt` with each line containing a description and a booking link similar to
 
 ```
-git secrets --scan-history
+engdes1-2023-Mar-14-Tue-1610-1759-spin-then-pend-029-abc123, https://dev.practable.io/book/?s=abc123
 ```
+
+
