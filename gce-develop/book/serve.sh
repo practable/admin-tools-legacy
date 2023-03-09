@@ -101,7 +101,8 @@ then
 elif [ "$command" = "5" ];
 then
 	export BOOKCLIENT_FORMAT=yaml
-	../bin/book oldbookings export
+	#../bin/book oldbookings export
+	curl -X GET -H "Authorization: ${BOOK_CLIENT_TOKEN}" "${BOOK_CLIENT_SCHEME}://${BOOK_CLIENT_HOST}${BOOK_CLIENT_BASE_PATH}/admin/oldbookings" > exported_old_bookings.json 
 elif [ "$command" = "6" ];
 then
 	read -p "Definitely replace [y/N]?" confirm
