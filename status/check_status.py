@@ -21,7 +21,7 @@ for connection in shell:
     if "/" not in connection["topic"]:
         experiments[connection["topic"]] = connection
         
-print(experiments)
+# print(experiments)
 
 
 # remoteAddr
