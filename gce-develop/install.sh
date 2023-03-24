@@ -22,3 +22,9 @@ if cd book 2> /dev/null; then git pull origin main; else git clone https://githu
 cd scripts
 ./build.sh
 cp ../cmd/book/book ../../../bin/book
+
+cd ../..
+if cd jump 2> /dev/null; then git pull origin main; else git clone https://github.com/practable/jump && cd jump; fi
+cd scripts/build
+./build.sh
+cp ../../cmd/jump/jump ../../../../bin/jump
