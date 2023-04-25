@@ -30,8 +30,7 @@ chmod +x ./getid.sh
 ./getid.sh
 export PRACTABLE_ID=$(./getid.sh)
 cd /etc/practable
-wget $SECRET_FILES/jump.access.$PRACTABLE_ID -O jump.access
-wget $SECRET_FILES/jump.token.$PRACTABLE_ID -O jump.token
+wget $SECRET_FILES/jump.env.$PRACTABLE_ID -O jump.env
 cd /etc/systemd/system
 wget $SECRET_FILES/jump.service -O jump.service
 systemctl enable jump.service
