@@ -13,7 +13,12 @@ Develop the script on pend35 as follows (note that spinners might already have g
 
 ```
 sudo su
+```
+Make file.link from credentials
+```
+systemctl stop jump.service
 cd sources
+rm -rf jump
 wget https://golang.org/dl/go1.20.1.linux-armv6l.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.1.linux-armv6l.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
@@ -24,7 +29,7 @@ cd jump/scripts/build
 cd ../../cmd/jump
 cp jump /usr/local/bin
 cd ../../../
-export SECRET_FILES=$(cat ~/secret/secret-files.link)
+export SECRET_FILES=$(cat /home/pi/files.link)
 wget $SECRET_FILES/getid.sh -O getid.sh
 chmod +x ./getid.sh
 ./getid.sh
