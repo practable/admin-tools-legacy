@@ -35,7 +35,7 @@ chmod +x ./getid.sh
 ./getid.sh
 export PRACTABLE_ID=$(./getid.sh)
 cd /etc/practable
-export SECRET_FILES=https://static.practable.io
+export SECRET_FILES=$(cat ~/secret/secret-files.link)
 wget $SECRET_FILES/jump.access.$PRACTABLE_ID -O jump.access
 wget $SECRET_FILES/jump.token.$PRACTABLE_ID -O jump.token
 cd /etc/systemd/system
