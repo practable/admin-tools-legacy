@@ -10,9 +10,15 @@ Copying in a script to do the task is probably the least manual work.
 
 Develop the script on pend35 as follows (note that spinners might already have go)
 
+
 ```
 sudo su
+```
+Make file.link from credentials
+```
+systemctl stop jump.service
 cd sources
+rm -rf jump
 wget https://golang.org/dl/go1.20.1.linux-armv6l.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.1.linux-armv6l.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
@@ -23,6 +29,41 @@ cd jump/scripts/build
 cd ../../cmd/jump
 cp jump /usr/local/bin
 cd ../../../
+export SECRET_FILES=$(cat /home/pi/files.link)
+wget $SECRET_FILES/getid.sh -O getid.sh
+chmod +x ./getid.sh
+./getid.sh
+export PRACTABLE_ID=$(./getid.sh)
+cd /etc/practable
+wget $SECRET_FILES/jump.env.$PRACTABLE_ID -O jump.env
+cd /etc/systemd/system
+wget $SECRET_FILES/jump.service -O jump.service
+systemctl enable jump.service
+systemctl start jump.service
+```
+
+Now we need to get some files on the system.
+
+If we copy them in by hand, then they are secure.
+If we place them somewhere obfuscated, that is not listed publically, we are probably ok ...
+
+we can get the id of the experiment automatically from the data.access file
+https://relay-access.practable.io/session/pend35-data
+
+
+
+idfilter='https://relay-access.practable.io/session/(\w*)-data'
+access=$(cat /etc/practable/data.access)
+[[ $access =~ $idfilter ]]
+id="${BASH_REMATCH[0]}"
+echo $id
+
+
+## Old sections of script
+
+not needed now files hosted
+
+```
 cat > getid.sh <<'EOF'
 #!/bin/sh  
 idfilter='https://relay-access.practable.io/session/(\w*)-data' 
@@ -31,15 +72,9 @@ access=$(cat /etc/practable/data.access)
 id="${BASH_REMATCH[1]}" 
 echo $id 
 EOF
-chmod +x ./getid.sh
-./getid.sh
-export PRACTABLE_ID=$(./getid.sh)
-cd /etc/practable
-export SECRET_FILES=https://static.practable.io
-wget $SECRET_FILES/jump.access.$PRACTABLE_ID -O jump.access
-wget $SECRET_FILES/jump.token.$PRACTABLE_ID -O jump.token
-cd /etc/systemd/system
+```
 
+```
 cat > jump.service <<'EOF'
 [Unit]
 Description=github.com/practable/jump host
@@ -67,22 +102,4 @@ SyslogIdentifier=jump
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable jump.service
-systemctl start jump.service
 ```
-
-Now we need to get some files on the system.
-
-If we copy them in by hand, then they are secure.
-If we place them somewhere obfuscated, that is not listed publically, we are probably ok ...
-
-we can get the id of the experiment automatically from the data.access file
-https://relay-access.practable.io/session/pend35-data
-
-
-
-idfilter='https://relay-access.practable.io/session/(\w*)-data'
-access=$(cat /etc/practable/data.access)
-[[ $access =~ $idfilter ]]
-id="${BASH_REMATCH[0]}"
-echo $id

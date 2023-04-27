@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Make token
 export JUMP_TOKEN_AUDIENCE=https://dev.practable.io/jump
