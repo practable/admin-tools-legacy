@@ -1,11 +1,19 @@
-# admin-tools
+# admin-tools-legacy
+
+This is a fork of [practable/admin-tools](https://github.com/practable/admin-tools) from July 2023, when we were running two different versions of the system concurrently (the original version on AWS, the new version on GCE). It includes scripts for administering both systems and some scripts for migrating experiments from one system to another. You should only be interested in this repo if you are migrating experiments to the new system - if you are setting up a new system, please see the latest version of [practable/admin-tools](https://github.com/practable/getting-started) 
+
+This is the repo used to administer both the AWS and GCE versions of the practable services during academic year 2022-23, including serving pendulums and spinners to engineering design 1 in semester 2 (i.e. Q1 2023), using the (then) new booking system and the (then) new single instance version of the cloud services that we hosted at dev.practable.io. This repo is fork of [practable/admin-tools](https://github.com/practable/admin-tools) as of July 2023, before it was updated to include previously-private details of the setting up the GCE instance, and removal of the AWS-related tools (so as to avoid confusion for new adopters). This move was prompted by contact from a potential new user who wants to set up their own instance - so it seemed a good time to make things tidier. If you are a new user, then please ignore this repo, and just look at [practable/getting-started](https://github.com/practable/getting-started)
+
+Note - this repo may still receive updates to handle migrations from the AWS system, but all other improvements to be used in future should be made within [practable/admin-tools](https://github.com/practable/admin-tools) 
+
+## Contents
 
 This repo contains scripts to help administer our two currently-running systems.
 
 - aws (running on relay v0.2.3 with instant-use non-cancellable bookings)
 - gce-develop (running latest relay with advance, cancellable bookings)
 
-The tools for each system are in a different repo, because they have different pre-requisites.
+The tools for each system are in a different directory, because they have different pre-requisites.
 
 ## Setup
 
