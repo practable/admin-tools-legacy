@@ -14,8 +14,15 @@ Develop the script on pend35 as follows (note that spinners might already have g
 ```
 sudo su
 ```
-Make file.link from credentials
+Make file.link from credentials, e.g.
+
 ```
+https://assets.practable.io/xx
+```
+
+RPI
+```
+#!/bin/bash
 systemctl stop jump.service
 cd sources
 rm -rf jump
@@ -40,6 +47,12 @@ cd /etc/systemd/system
 wget $SECRET_FILES/jump.service -O jump.service
 systemctl enable jump.service
 systemctl start jump.service
+```
+
+Ubuntu
+```
+
+
 ```
 
 Now we need to get some files on the system.
