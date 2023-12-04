@@ -40,13 +40,15 @@ for stream in status:
     topic = name[0]
     what = name[2]
     
-    if stream["remoteAddr"]==experiments[topic]["remoteAddr"]:
-        streams[stream["topic"]] = stream
-        if what == "video":
-            videos[topic] = stream
-        if what == "data":
-            datas[topic] = stream
-        
+    try:
+        if stream["remoteAddr"]==experiments[topic]["remoteAddr"]:
+            streams[stream["topic"]] = stream
+            if what == "video":
+                videos[topic] = stream
+            if what == "data":
+                datas[topic] = stream
+    except:
+        pass
       
 vlist = []
 
