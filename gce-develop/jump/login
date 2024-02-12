@@ -2,7 +2,7 @@
 
 # Usage ./login <expt_id>
 # Example ./login pend00
-set -x
+#set -x
 export EXPT=$1
 
 function freeport(){
@@ -22,12 +22,12 @@ export JUMP_CLIENT_LOCAL_PORT="${port}"
 export JUMP_CLIENT_RELAY_SESSION="${JUMP_TOKEN_AUDIENCE}/${JUMP_TOKEN_CONNECTION_TYPE}/${JUMP_TOKEN_TOPIC}"
 export JUMP_CLIENT_TOKEN=$(../bin/jump token)
 export JUMP_CLIENT_DEVELOPMENT=true
-../bin/jump client #>/dev/null 2>&1 &
-#pid=$!
-#export SSHPASS=$(~/secret/ep $EXPT)
-#user=$(~/secret/eu $EXPT)
-#sshpass -v -e ssh -o "StrictHostKeyChecking no" "${user}@localhost" -p "$port" 
-#kill $!
+../bin/jump client >/dev/null 2>&1 &
+pid=$!
+export SSHPASS=$(~/secret/ep $EXPT)
+user=$(~/secret/eu $EXPT)
+sshpass -v -e ssh -o "StrictHostKeyChecking no" "${user}@localhost" -p "$port" 
+kill $!
 
 
 
